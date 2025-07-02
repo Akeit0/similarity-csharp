@@ -1,4 +1,4 @@
-# SimilarityCSharp =
+# SimilarityCSharp
 
 A high-performance C# code similarity detector using **Tree Structure Edit Distance (TSED)** analysis with Roslyn. Efficiently finds duplicate and similar code across C# projects through advanced AST comparison algorithms.
 
@@ -20,8 +20,8 @@ This repository is highly inspired by [**similarity**](https://github.com/mizchi
 
 ### Build from Source
 ```bash
-git clone https://github.com/your-repo/similarity-roslyn.git
-cd similarity-roslyn
+git clone https://github.com/your-repo/similarity-csharp.git
+cd similarity-csharp
 dotnet build
 ```
 
