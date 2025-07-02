@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src\SimilarityCSharp.Core\SimilarityCSharp.Core.csproj" Type="Classic C#" />
+  <Project Path="src\SimilarityCSharp.Cli\SimilarityCSharp.Cli.csproj" Type="Classic C#" />
+  <Project Path="tests\SimilarityCSharp.Tests\SimilarityCSharp.Tests.csproj" Type="Classic C#" />
+</Solution>
