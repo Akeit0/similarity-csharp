@@ -8,8 +8,9 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackAsTool>true</PackAsTool>
-        <ToolCommandName>SimilarityCSharp</ToolCommandName>
+        <ToolCommandName>similarity-csharp</ToolCommandName>
         <PackageOutputPath>./nupkg</PackageOutputPath>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -20,6 +21,6 @@
         <ProjectReference Include="..\SimilarityCSharp.Core\SimilarityCSharp.Core.csproj" />
     </ItemGroup>
     <ItemGroup>
-        <None Include="..\..\README.md" Pack="true" PackagePath="README.md"/>
+        <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
     </ItemGroup>
 </Project>

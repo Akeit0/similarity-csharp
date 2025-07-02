@@ -20,27 +20,27 @@ This repository is highly inspired by [**similarity**](https://github.com/mizchi
 
 ### Build from Source
 ```bash
-git clone https://github.com/your-repo/similarity-csharp.git
+git clone https://github.com/Akeit0/similarity-csharp.git
 cd similarity-csharp
 dotnet build
 ```
 
 ## Quick Start
 ```
-dotnet tool install --global  SimilarityCSharp
-SimilarityCSharp -h
+dotnet tool install --global  similarity-csharp
+similarity-csharp -h
 ```
 
 ### Basic Usage
 ```bash
 # Analyze current directory for duplicates
-SimilarityCSharp -p . --threshold 0.8
+similarity-csharp -p . --threshold 0.8
 
 # Analyze specific files/directories
-SimilarityCSharp -p "src/" "tests/" --threshold 0.85 --min-lines 10
+similarity-csharp -p "src/" "tests/" --threshold 0.85 --min-lines 10
 
 # Find high-similarity code with detailed output
-SimilarityCSharp -p . --threshold 0.9 --print --output results.txt
+similarity-csharp -p . --threshold 0.9 --print --output results.txt
 ```
 
 ### Programmatic Usage
@@ -205,40 +205,6 @@ var productionOptions = new TSEDOptions
     IncludeMethodPattern = new Regex(@"^(?!.*Test).*")  // Exclude test methods
 };
 ```
-
-## Troubleshooting
-
-### Common Issues
-
-**High Memory Usage**
-- Reduce `maxLines` parameter for very large methods
-- Process files in smaller batches
-- Use file pattern filtering to focus on relevant code
-
-**Low Similarity Scores**
-- Adjust `renameCost` for variable rename tolerance
-- Lower `threshold` to find more matches
-- Disable `sizePenalty` for methods with different sizes
-
-**Performance Issues**
-- Enable Bloom filter optimization (default)
-- Use `includeMethodPattern` to filter irrelevant methods
-- Increase `minLines` to skip trivial methods
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Run tests (`dotnet test`)
-4. Commit changes (`git commit -m 'Add amazing feature'`)
-5. Push to branch (`git push origin feature/amazing-feature`)
-6. Open a Pull Request
-
-### Development Guidelines
-- Add tests for new features
-- Follow existing code style
-- Update documentation for API changes
-- Verify performance impact for algorithm changes
 
 ## License
 
