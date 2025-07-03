@@ -237,6 +237,21 @@ public class MethodInfo : IEquatable<MethodInfo>
     public required List<string> Attributes { get; init; }
     public string? ClassName { get; init; }
 
+    TsedCalculator.StructuralFeatures? _cachedStructuralFeatures;
+
+    internal TsedCalculator.StructuralFeatures StructuralFeatures
+    {
+        get
+        {
+            if (_cachedStructuralFeatures != null)
+                return _cachedStructuralFeatures;
+            var features = new TsedCalculator.StructuralFeatures();
+            TsedCalculator.AnalyzeNode(Tree, features, 0);
+            _cachedStructuralFeatures = features;
+            return features;
+        }
+    }
+
     public string FullName => string.IsNullOrEmpty(ClassName) ? Name : $"{ClassName}.{Name}";
 
     public bool Equals(MethodInfo? other)

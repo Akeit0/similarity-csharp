@@ -65,19 +65,19 @@ public static class TsedCalculator
             }
         }
 
-        var structuralPenalty = CalculateStructuralPenalty(tree1, tree2, distance, maxSize);
+        var structuralPenalty = CalculateStructuralPenalty(method1, method2, distance, maxSize , options.AptedOptions.RenameCost);
         similarity *= structuralPenalty;
         return Math.Max(0, Math.Min(1, similarity));
     }
 
-    static double CalculateStructuralPenalty(TreeNode tree1, TreeNode tree2, double distance, double maxSize)
+    static double CalculateStructuralPenalty(MethodInfo method1, MethodInfo method2, double distance, double maxSize,double renameCost)
     {
         // Base penalty starts at 1.0 (no penalty)
         var penalty = 1.0;
 
         // Analyze structural differences
-        var structure1 = AnalyzeStructure(tree1);
-        var structure2 = AnalyzeStructure(tree2);
+        var structure1 = method1.StructuralFeatures;
+        var structure2 = method2.StructuralFeatures;
 
         // Control flow complexity penalty - moderate approach
         var complexityDiff = Math.Abs(structure1.ControlFlowComplexity - structure2.ControlFlowComplexity);
@@ -135,7 +135,7 @@ public static class TsedCalculator
         }
 
         // Value-based penalties for different business logic - conservative approach
-        var valueSimilarity = CalculateValueSimilarity(structure1, structure2);
+        var valueSimilarity = CalculateValueSimilarity(structure1, structure2)*(1-renameCost);
         if (valueSimilarity < 0.3)
         {
             penalty *= 0.85; // Penalty only for very different value usage
@@ -147,21 +147,15 @@ public static class TsedCalculator
 
         return Math.Max(0.1, penalty); // Never reduce similarity below 10% of original
     }
-
-    static StructuralFeatures AnalyzeStructure(TreeNode tree)
-    {
-        var features = new StructuralFeatures();
-        AnalyzeNode(tree, features, 0);
-        return features;
-    }
+    
 
     static double CalculateValueSimilarity(StructuralFeatures s1, StructuralFeatures s2)
     {
         // Calculate similarity of identifiers and literals used
-        var allIdentifiers1 = s1.Identifiers.ToHashSet();
-        var allIdentifiers2 = s2.Identifiers.ToHashSet();
-        var allLiterals1 = s1.Literals.ToHashSet();
-        var allLiterals2 = s2.Literals.ToHashSet();
+        var allIdentifiers1 = s1.Identifiers;
+        var allIdentifiers2 = s2.Identifiers;
+        var allLiterals1 = s1.Literals;
+        var allLiterals2 = s2.Literals;
 
         // Identifier similarity (property names, variable names, etc.)
         var identifierIntersection = allIdentifiers1.Intersect(allIdentifiers2).Count();
@@ -177,7 +171,7 @@ public static class TsedCalculator
         return (identifierSimilarity * 0.7) + (literalSimilarity * 0.3);
     }
 
-    static void AnalyzeNode(TreeNode node, StructuralFeatures features, int depth)
+   internal static void AnalyzeNode(TreeNode node, StructuralFeatures features, int depth)
     {
         features.MaxNestingLevel = Math.Max(features.MaxNestingLevel, depth);
 
@@ -244,7 +238,7 @@ public static class TsedCalculator
         }
     }
 
-    class StructuralFeatures
+    internal class StructuralFeatures
     {
         public int ControlFlowComplexity { get; set; } = 0;
         public List<LoopType> LoopTypes { get; set; } = new();
@@ -252,7 +246,7 @@ public static class TsedCalculator
         public int MethodCallCount { get; set; } = 0;
         public int VariableCount { get; set; } = 0;
         public int MaxNestingLevel { get; set; } = 0;
-        public List<string> Identifiers { get; set; } = new();
-        public List<string> Literals { get; set; } = new();
+        public HashSet<string> Identifiers { get; set; } = new();
+        public HashSet<string> Literals { get; set; } = new();
     }
 }
