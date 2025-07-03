@@ -282,6 +282,45 @@ namespace Test
     }
 
     [Test]
+    public void ParseFile_WithBothBlockAndArrowMethods_ParsesBoth()
+    {
+        var code = @"
+namespace Test
+{
+    public class TestClass
+    {
+        public int Add(int a, int b)
+        {
+            return a + b;
+        }
+        
+        public int Double(int x) => x * 2;
+    }
+}";
+        
+        var tempFile = CreateTempFile(code);
+        
+        try
+        {
+            var parsedFile = _parser.ParseFile(tempFile);
+            
+            Console.WriteLine($"Found {parsedFile.Methods.Count} methods:");
+            foreach (var method in parsedFile.Methods)
+            {
+                Console.WriteLine($"  - {method.Name} (Tokens: {method.Tokens}, Lines: {method.Lines})");
+            }
+            
+            Assert.That(parsedFile.Methods, Has.Count.EqualTo(2));
+            Assert.That(parsedFile.Methods.Any(m => m.Name == "Add"), Is.True);
+            Assert.That(parsedFile.Methods.Any(m => m.Name == "Double"), Is.True);
+        }
+        finally
+        {
+            File.Delete(tempFile);
+        }
+    }
+
+    [Test]
     public void ParseFile_WithNestedClasses_ExtractsMethodsFromAllClasses()
     {
         var code = @"

@@ -7,9 +7,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <RootNamespace>SimilarityCSharp</RootNamespace>
-        <PackageId>SimilarityCSharp.Core</PackageId>
         <Description>Core library for C# code similarity analysis using tree edit distance</Description>
     </PropertyGroup>
 

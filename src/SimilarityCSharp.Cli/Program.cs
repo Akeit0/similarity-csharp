@@ -21,7 +21,7 @@ static class Commands
     /// <param name="printAll">Print all members in duplicate groups.</param>
     /// <param name="noSizePenalty">Disable size penalty in similarity calculation.</param>
     /// <param name="extensions">-ext, File extensions to analyze. Use .cs if null</param>
-    /// <param name="renameCost">Rename cost for Apted algorithm.</param>
+    /// <param name="renameCost">-r, Rename cost for Apted algorithm.</param>
     /// <param name="deleteCost">Delete cost for Apted algorithm.</param>
     /// <param name="insertCost">Insert cost for Apted algorithm.</param>
     /// <param name="includeFilePattern">Regex pattern to include files.</param>

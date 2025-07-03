@@ -60,7 +60,7 @@ public static class OutputFormatter
         }
         
         // Summary
-        Console.WriteLine($"\n{new string('═', 80)}");
+        Console.WriteLine(new string('=', 80));
         var totalDuplicates = groups.Sum(g => g.Duplicates.Count + 1);
         var totalImpact = groups.Sum(g => g.TotalImpact);
         Console.WriteLine($"Found {groups.Count} duplicate groups with {totalDuplicates} total methods");

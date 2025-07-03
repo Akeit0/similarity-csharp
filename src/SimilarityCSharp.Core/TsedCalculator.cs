@@ -3,6 +3,14 @@ using Microsoft.CodeAnalysis.CSharp;
 
 namespace SimilarityCSharp;
 
+public enum LoopType
+{
+    For,
+    While,
+    Do,
+    ForEach
+}
+
 public record TsedOptions
 {
     public AptedOptions AptedOptions { get; set; } = new();
@@ -15,88 +23,50 @@ public record TsedOptions
 
 public static class TsedCalculator
 {
-    public static double CalculateSimilarity(TreeNode tree1, TreeNode tree2, TsedOptions options)
+    public static double CalculateSimilarity(MethodInfo method1, MethodInfo method2, TsedOptions options)
     {
+        var tree1 = method1.Tree;
+        var tree2 = method2.Tree;
         var distance = AptedAlgorithm.ComputeEditDistance(tree1, tree2, options.AptedOptions);
-        
+
         var size1 = (double)tree1.GetSubtreeSize();
         var size2 = (double)tree2.GetSubtreeSize();
-        
+
         // TSED normalization: Use the larger tree size
         var maxSize = Math.Max(size1, size2);
-        
+        var sizeRatio = Math.Min(size1, size2) / maxSize;
+
+
         // Calculate base TSED similarity
         var tsedSimilarity = maxSize > 0 ? Math.Max(0, 1.0 - distance / maxSize) : 1.0;
-        
-        // Special handling when distance is 0 but sizes differ
-        if (distance == 0 && Math.Abs(size1 - size2) > 0.001)
-        {
-            var sizeRatio = Math.Min(size1, size2) / Math.Max(size1, size2);
-            var sizeDiff = Math.Abs(size1 - size2);
-            
-            if (sizeDiff > 10)
-            {
-                // Strong penalty for large absolute differences
-                tsedSimilarity *= 0.5;
-            }
-            else if (sizeRatio < 0.95 || sizeDiff > 3)
-            {
-                // Moderate penalty for noticeable differences
-                tsedSimilarity *= Math.Pow(sizeRatio, 0.5);
-            }
-        }
-        
-        // If trees are identical (distance = 0 and same size), don't apply structural penalties
-        if (distance == 0 && Math.Abs(size1 - size2) < 0.001)
-        {
-            return Math.Max(0, Math.Min(1, tsedSimilarity));
-        }
-        
-        // Apply size penalties for small trees
-        if (options.SizePenalty)
-        {
-            if (maxSize < 10 && distance > 0)
-            {
-                tsedSimilarity *= 0.8; // Reduce similarity for small trees with differences
-            }
-            else if (maxSize < 30 && distance > 0)
-            {
-                tsedSimilarity *= 0.9; // Smaller penalty for moderately small trees
-            }
-        }
-        
-        // Apply additional structural penalties
+
         var similarity = tsedSimilarity;
-        var sizeRatioPenalty = Math.Min(size1, size2) / Math.Max(size1, size2);
-        
+
+        // Apply line count penalty
         if (options.SizePenalty)
         {
-            var minSize = Math.Min(size1, size2);
-            
-            if (minSize < 30)
+            if (sizeRatio < 0.1)
             {
-                // Short function penalty
-                var shortFunctionFactor = Math.Pow(minSize / 30.0, 0.5);
-                similarity *= shortFunctionFactor;
-                
-                // Additional penalty for very short functions
-                if (minSize < 10)
-                {
-                    similarity *= 0.5;
-                }
+                similarity *= sizeRatio * 10; // Dramatic penalty for very different sizes
             }
-            
-            // Apply size ratio penalty
-            if (sizeRatioPenalty < 0.5)
+            else if (sizeRatio < 0.3)
             {
-                similarity *= sizeRatioPenalty;
+                similarity *= (0.7 + sizeRatio); // Moderate penalty for moderately different sizes
             }
-            
-            // Apply structural penalty to reduce false positives
-            var structuralPenalty = CalculateStructuralPenalty(tree1, tree2, distance, maxSize);
-            similarity *= structuralPenalty;
+
+            var lineCount1 = method1.Lines;
+            var lineCount2 = method2.Lines;
+            var avgLineCount = (lineCount1 + lineCount2) / 2.0;
+            if (avgLineCount < 10)
+            {
+                // For functions under 10 lines, apply a penalty based on line count
+                var shortFunctionPenalty = avgLineCount / 10.0; // 0.5 for 5 lines, 0.8 for 8 lines, etc.
+                similarity *= shortFunctionPenalty; // Reduce similarity based on line count
+            }
         }
-        
+
+        var structuralPenalty = CalculateStructuralPenalty(tree1, tree2, distance, maxSize);
+        similarity *= structuralPenalty;
         return Math.Max(0, Math.Min(1, similarity));
     }
 
@@ -104,11 +74,11 @@ public static class TsedCalculator
     {
         // Base penalty starts at 1.0 (no penalty)
         var penalty = 1.0;
-        
+
         // Analyze structural differences
         var structure1 = AnalyzeStructure(tree1);
         var structure2 = AnalyzeStructure(tree2);
-        
+
         // Control flow complexity penalty - moderate approach
         var complexityDiff = Math.Abs(structure1.ControlFlowComplexity - structure2.ControlFlowComplexity);
         if (complexityDiff > 3)
@@ -119,21 +89,21 @@ public static class TsedCalculator
         {
             penalty *= 0.95; // Minor penalty for moderately different control flow
         }
-        
+
         // Loop structure penalty - only for completely different patterns
         if (structure1.LoopTypes.Count > 0 && structure2.LoopTypes.Count > 0 &&
             !structure1.LoopTypes.SequenceEqual(structure2.LoopTypes))
         {
             penalty *= 0.9; // Moderate penalty for different loop patterns
         }
-        
+
         // Conditional structure penalty
         var conditionalDiff = Math.Abs(structure1.ConditionalCount - structure2.ConditionalCount);
         if (conditionalDiff > 2)
         {
             penalty *= 0.85; // Penalty for significantly different conditional complexity
         }
-        
+
         // Method call pattern penalty
         var maxCalls = Math.Max(structure1.MethodCallCount, structure2.MethodCallCount);
         var callDiff = Math.Abs(structure1.MethodCallCount - structure2.MethodCallCount);
@@ -141,7 +111,7 @@ public static class TsedCalculator
         {
             penalty *= 0.9; // Penalty for very different call patterns
         }
-        
+
         // Variable usage pattern penalty
         var maxVars = Math.Max(structure1.VariableCount, structure2.VariableCount);
         var varDiff = Math.Abs(structure1.VariableCount - structure2.VariableCount);
@@ -149,21 +119,21 @@ public static class TsedCalculator
         {
             penalty *= 0.95; // Minor penalty for different variable usage
         }
-        
+
         // Deep nesting penalty for different patterns
         var nestingDiff = Math.Abs(structure1.MaxNestingLevel - structure2.MaxNestingLevel);
         if (nestingDiff > 2)
         {
             penalty *= 0.9; // Penalty for significantly different nesting patterns
         }
-        
+
         // High edit distance relative to size penalty
         var editRatio = distance / maxSize;
         if (editRatio > 0.4)
         {
             penalty *= Math.Pow(0.8, editRatio); // Exponential penalty for high edit ratios
         }
-        
+
         // Value-based penalties for different business logic - conservative approach
         var valueSimilarity = CalculateValueSimilarity(structure1, structure2);
         if (valueSimilarity < 0.3)
@@ -174,7 +144,7 @@ public static class TsedCalculator
         {
             penalty *= 0.95; // Minor penalty for somewhat different values
         }
-        
+
         return Math.Max(0.1, penalty); // Never reduce similarity below 10% of original
     }
 
@@ -192,17 +162,17 @@ public static class TsedCalculator
         var allIdentifiers2 = s2.Identifiers.ToHashSet();
         var allLiterals1 = s1.Literals.ToHashSet();
         var allLiterals2 = s2.Literals.ToHashSet();
-        
+
         // Identifier similarity (property names, variable names, etc.)
         var identifierIntersection = allIdentifiers1.Intersect(allIdentifiers2).Count();
-        var identifierUnion =  allIdentifiers1.Count + allIdentifiers2.Count - identifierIntersection;
+        var identifierUnion = allIdentifiers1.Count + allIdentifiers2.Count - identifierIntersection;
         var identifierSimilarity = identifierUnion == 0 ? 1.0 : (double)identifierIntersection / identifierUnion;
-        
+
         // Literal similarity (constant values, strings, numbers)
         var literalIntersection = allLiterals1.Intersect(allLiterals2).Count();
         var literalUnion = allLiterals1.Count + allLiterals2.Count - literalIntersection;
         var literalSimilarity = literalUnion == 0 ? 1.0 : (double)literalIntersection / literalUnion;
-        
+
         // Weighted combination - identifiers more important for business logic
         return (identifierSimilarity * 0.7) + (literalSimilarity * 0.3);
     }
@@ -210,7 +180,7 @@ public static class TsedCalculator
     static void AnalyzeNode(TreeNode node, StructuralFeatures features, int depth)
     {
         features.MaxNestingLevel = Math.Max(features.MaxNestingLevel, depth);
-        
+
         // Collect identifiers and literals for value-based analysis
         if (!string.IsNullOrEmpty(node.Value))
         {
@@ -229,23 +199,23 @@ public static class TsedCalculator
                     break;
             }
         }
-        
+
         switch (node.Kind)
         {
             case SyntaxKind.ForStatement:
-                features.LoopTypes.Add("for");
+                features.LoopTypes.Add(LoopType.For);
                 features.ControlFlowComplexity++;
                 break;
             case SyntaxKind.WhileStatement:
-                features.LoopTypes.Add("while");
+                features.LoopTypes.Add(LoopType.While);
                 features.ControlFlowComplexity++;
                 break;
             case SyntaxKind.DoStatement:
-                features.LoopTypes.Add("do");
+                features.LoopTypes.Add(LoopType.Do);
                 features.ControlFlowComplexity++;
                 break;
             case SyntaxKind.ForEachStatement:
-                features.LoopTypes.Add("foreach");
+                features.LoopTypes.Add(LoopType.ForEach);
                 features.ControlFlowComplexity++;
                 break;
             case SyntaxKind.IfStatement:
@@ -267,7 +237,7 @@ public static class TsedCalculator
                 features.ControlFlowComplexity += 2; // Exception handling is complex
                 break;
         }
-        
+
         foreach (var child in node.Children)
         {
             AnalyzeNode(child, features, depth + 1);
@@ -277,7 +247,7 @@ public static class TsedCalculator
     class StructuralFeatures
     {
         public int ControlFlowComplexity { get; set; } = 0;
-        public List<string> LoopTypes { get; set; } = new();
+        public List<LoopType> LoopTypes { get; set; } = new();
         public int ConditionalCount { get; set; } = 0;
         public int MethodCallCount { get; set; } = 0;
         public int VariableCount { get; set; } = 0;

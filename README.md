@@ -18,6 +18,12 @@ This repository is highly inspired by [**similarity**](https://github.com/mizchi
 - .NET 8.0 or later
 - C# projects using Roslyn-compatible syntax
 
+## Quick Start
+```
+dotnet tool install --global  SimilarityCSharp.Cli
+similarity-csharp -h
+```
+
 ### Build from Source
 ```bash
 git clone https://github.com/Akeit0/similarity-csharp.git
@@ -25,11 +31,7 @@ cd similarity-csharp
 dotnet build
 ```
 
-## Quick Start
-```
-dotnet tool install --global  similarity-csharp
-similarity-csharp -h
-```
+
 
 ### Basic Usage
 ```bash

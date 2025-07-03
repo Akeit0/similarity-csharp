@@ -43,7 +43,7 @@ public class DuplicateDetector(TsedOptions options)
         Parallel.ForEach(comparisonWork,work =>
         {
             // Calculate similarity - all similarity calculations done in parallel
-            var similarity = TsedCalculator.CalculateSimilarity(work.Method1.Tree, work.Method2.Tree, options);
+            var similarity = TsedCalculator.CalculateSimilarity(work.Method1, work.Method2, options);
             
             if (similarity >= threshold)
             {

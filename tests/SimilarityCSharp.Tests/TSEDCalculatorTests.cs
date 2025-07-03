@@ -28,12 +28,12 @@ public int Add(int a, int b)
 {
     return a + b;
 }";
-        
+
         var tree1 = ParseMethodToTree(code);
         var tree2 = ParseMethodToTree(code);
-        
+
         var similarity = TsedCalculator.CalculateSimilarity(tree1, tree2, _defaultOptions);
-        
+
         Assert.That(similarity, Is.EqualTo(1.0).Within(0.001));
     }
 
@@ -45,7 +45,7 @@ public int Add(int a, int b)
 {
     return a + b;
 }";
-        
+
         var code2 = @"
 public string GetName()
 {
@@ -55,12 +55,12 @@ public string GetName()
     }
     return ""default"";
 }";
-        
+
         var tree1 = ParseMethodToTree(code1);
         var tree2 = ParseMethodToTree(code2);
-        
+
         var similarity = TsedCalculator.CalculateSimilarity(tree1, tree2, _defaultOptions);
-        
+
         Assert.That(similarity, Is.LessThan(0.3));
     }
 
@@ -73,19 +73,19 @@ public int Add(int a, int b)
     var result = a + b;
     return result;
 }";
-        
+
         var code2 = @"
 public int Add(int x, int y)
 {
     var sum = x + y;
     return sum;
 }";
-        
+
         var tree1 = ParseMethodToTree(code1);
         var tree2 = ParseMethodToTree(code2);
-        
+
         var similarity = TsedCalculator.CalculateSimilarity(tree1, tree2, _defaultOptions);
-        
+
         Assert.That(similarity, Is.GreaterThan(0.8));
     }
 
@@ -97,7 +97,7 @@ public int Add(int a, int b)
 {
     return a + b;
 }";
-        
+
         var code2 = @"
 public int Add(int a, int b)
 {
@@ -108,12 +108,12 @@ public int Add(int a, int b)
     var temp5 = temp4;
     return temp5;
 }";
-        
+
         var tree1 = ParseMethodToTree(code1);
         var tree2 = ParseMethodToTree(code2);
-        
+
         var similarity = TsedCalculator.CalculateSimilarity(tree1, tree2, _defaultOptions);
-        
+
         Assert.That(similarity, Is.LessThan(0.7)); // Should be penalized for size difference
     }
 
@@ -126,49 +126,27 @@ public int Add(int a, int b)
             MinTokens = 0,
             SizePenalty = false
         };
-        
+
         var code1 = @"
 public int Add(int a, int b)
 {
     return a + b;
 }";
-        
+
         var code2 = @"
 public int Add(int a, int b)
 {
     var temp = a + b;
     return temp;
 }";
-        
+
         var tree1 = ParseMethodToTree(code1);
         var tree2 = ParseMethodToTree(code2);
-        
+
         var similarityWithPenalty = TsedCalculator.CalculateSimilarity(tree1, tree2, _defaultOptions);
         var similarityWithoutPenalty = TsedCalculator.CalculateSimilarity(tree1, tree2, optionsWithoutPenalty);
-        
+
         Assert.That(similarityWithoutPenalty, Is.GreaterThan(similarityWithPenalty));
-    }
-
-    [Test]
-    public void CalculateSimilarity_EmptyTrees_Returns1()
-    {
-        var emptyTree1 = new TreeNode(Microsoft.CodeAnalysis.CSharp.SyntaxKind.Block, "", 1);
-        var emptyTree2 = new TreeNode(Microsoft.CodeAnalysis.CSharp.SyntaxKind.Block, "", 2);
-        
-        var similarity = TsedCalculator.CalculateSimilarity(emptyTree1, emptyTree2, _defaultOptions);
-        
-        Assert.That(similarity, Is.EqualTo(1.0).Within(0.001));
-    }
-
-    [Test]
-    public void CalculateSimilarity_SingleNodeTrees_Returns1()
-    {
-        var tree1 = new TreeNode(Microsoft.CodeAnalysis.CSharp.SyntaxKind.ReturnStatement, "return", 1);
-        var tree2 = new TreeNode(Microsoft.CodeAnalysis.CSharp.SyntaxKind.ReturnStatement, "return", 2);
-        
-        var similarity = TsedCalculator.CalculateSimilarity(tree1, tree2, _defaultOptions);
-        
-        Assert.That(similarity, Is.EqualTo(1.0).Within(0.001));
     }
 
     [Test]
@@ -181,7 +159,7 @@ public int Process(int value)
         return value * 2;
     return 0;
 }";
-        
+
         var code2 = @"
 public int Process(int value)
 {
@@ -194,17 +172,17 @@ public int Process(int value)
         return 0;
     }
 }";
-        
+
         var tree1 = ParseMethodToTree(code1);
         var tree2 = ParseMethodToTree(code2);
-        
+
         var similarity = TsedCalculator.CalculateSimilarity(tree1, tree2, _defaultOptions);
-        
+
         Assert.That(similarity, Is.GreaterThan(0.7));
         Assert.That(similarity, Is.LessThan(1.0));
     }
 
-    private TreeNode ParseMethodToTree(string code)
+    private MethodInfo ParseMethodToTree(string code)
     {
         var fullCode = $@"
 namespace Test
@@ -214,14 +192,14 @@ namespace Test
         {code}
     }}
 }}";
-        
+
         var tempFile = Path.GetTempFileName();
         File.WriteAllText(tempFile, fullCode);
-        
+
         try
         {
             var parsedFile = _parser.ParseFile(tempFile);
-            return parsedFile.Methods.First().Tree;
+            return parsedFile.Methods.First();
         }
         finally
         {

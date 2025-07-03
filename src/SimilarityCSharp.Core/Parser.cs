@@ -7,16 +7,16 @@ namespace SimilarityCSharp;
 public class Parser
 {
     int idCounter;
-    
+
     public ParsedFile ParseFile(string filePath)
     {
         var sourceText = File.ReadAllText(filePath);
-        var tree = CSharpSyntaxTree.ParseText(sourceText, 
+        var tree = CSharpSyntaxTree.ParseText(sourceText,
             CSharpParseOptions.Default.WithLanguageVersion(LanguageVersion.Latest));
-        
+
         var root = tree.GetRoot();
         var methods = ExtractMethods(root, filePath);
-        
+
         return new ParsedFile
         {
             FilePath = filePath,
@@ -32,7 +32,7 @@ public class Parser
         methods.AddRange(walker.Methods);
         return methods;
     }
-    
+
     public TreeNode ConvertToTree(SyntaxNode node)
     {
         var id = Interlocked.Increment(ref idCounter);
@@ -51,22 +51,43 @@ public class Parser
                 value = predefined.Keyword.Text;
                 break;
         }
-        
+
+        // Check if this is a block with a single statement that should be unwrapped
+        if (node is BlockSyntax { Statements.Count: 1 } block && ShouldUnwrapBlock(node.Parent))
+        {
+            // Skip the block node and directly convert the single statement
+            return ConvertToTree(block.Statements[0]);
+        }
+
+
         var treeNode = new TreeNode(kind, value, id);
-        
+
         foreach (var child in node.ChildNodes())
         {
             var childTree = ConvertToTree(child);
             treeNode.AddChild(childTree);
         }
-        
+
         return treeNode;
+    }
+
+    bool ShouldUnwrapBlock(SyntaxNode? parent)
+    {
+        if (parent == null) return false;
+
+        // Unwrap blocks that are children of control flow statements
+        return parent.IsKind(SyntaxKind.IfStatement) ||
+               parent.IsKind(SyntaxKind.ElseClause) ||
+               parent.IsKind(SyntaxKind.WhileStatement) ||
+               parent.IsKind(SyntaxKind.ForStatement) ||
+               parent.IsKind(SyntaxKind.ForEachStatement) ||
+               parent.IsKind(SyntaxKind.DoStatement);
     }
 
     class MethodWalker(Parser parser, string filePath) : CSharpSyntaxWalker
     {
         readonly Stack<string> classContext = new();
-        
+
         public List<MethodInfo> Methods { get; } = new();
 
         public override void VisitClassDeclaration(ClassDeclarationSyntax node)
@@ -75,40 +96,40 @@ public class Parser
             base.VisitClassDeclaration(node);
             classContext.Pop();
         }
-        
+
         public override void VisitStructDeclaration(StructDeclarationSyntax node)
         {
             classContext.Push(node.Identifier.Text);
             base.VisitStructDeclaration(node);
             classContext.Pop();
         }
-        
+
         public override void VisitRecordDeclaration(RecordDeclarationSyntax node)
         {
             classContext.Push(node.Identifier.Text);
             base.VisitRecordDeclaration(node);
             classContext.Pop();
         }
-        
+
         public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
         {
             ProcessMethod(node, node.Identifier.Text, node.Body ?? (SyntaxNode?)node.ExpressionBody);
             base.VisitMethodDeclaration(node);
         }
-        
+
         public override void VisitConstructorDeclaration(ConstructorDeclarationSyntax node)
         {
             var name = classContext.Count > 0 ? $"{classContext.Peek()}.ctor" : "ctor";
             ProcessMethod(node, name, node.Body ?? (SyntaxNode?)node.ExpressionBody);
             base.VisitConstructorDeclaration(node);
         }
-        
+
         public override void VisitLocalFunctionStatement(LocalFunctionStatementSyntax node)
         {
             ProcessMethod(node, node.Identifier.Text, node.Body ?? (SyntaxNode?)node.ExpressionBody);
             base.VisitLocalFunctionStatement(node);
         }
-        
+
         public override void VisitPropertyDeclaration(PropertyDeclarationSyntax node)
         {
             // Handle property accessors with bodies
@@ -120,17 +141,18 @@ public class Parser
                     ProcessMethod(accessor, accessorName, accessor.Body ?? (SyntaxNode?)accessor.ExpressionBody);
                 }
             }
+
             base.VisitPropertyDeclaration(node);
         }
 
         void ProcessMethod(SyntaxNode node, string name, SyntaxNode? body)
         {
             if (body == null) return;
-            
+
             var tree = parser.ConvertToTree(body);
             var lines = GetLineCount(node);
             var tokens = tree.GetSubtreeSize();
-            
+
             // Extract parameters
             var parameters = new List<string>();
             if (node is BaseMethodDeclarationSyntax method)
@@ -140,10 +162,10 @@ public class Parser
                     parameters.Add(param.Identifier.Text);
                 }
             }
-            
+
             // Check if async
             var isAsync = node.DescendantTokens().Any(t => t.IsKind(SyntaxKind.AsyncKeyword));
-            
+
             // Get attributes (decorators)
             var attributes = new List<string>();
             if (node is MemberDeclarationSyntax member)
@@ -156,7 +178,7 @@ public class Parser
                     }
                 }
             }
-            
+
             var methodInfo = new MethodInfo
             {
                 Name = name,
@@ -172,7 +194,7 @@ public class Parser
                 Attributes = attributes,
                 ClassName = classContext.Count > 0 ? classContext.Peek() : null
             };
-            
+
             Methods.Add(methodInfo);
         }
 
@@ -214,9 +236,9 @@ public class MethodInfo : IEquatable<MethodInfo>
     public required bool IsAsync { get; init; }
     public required List<string> Attributes { get; init; }
     public string? ClassName { get; init; }
-    
+
     public string FullName => string.IsNullOrEmpty(ClassName) ? Name : $"{ClassName}.{Name}";
-    
+
     public bool Equals(MethodInfo? other)
     {
         if (other is null) return false;

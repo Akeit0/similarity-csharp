@@ -10,7 +10,6 @@
         <PackAsTool>true</PackAsTool>
         <ToolCommandName>similarity-csharp</ToolCommandName>
         <PackageOutputPath>./nupkg</PackageOutputPath>
-        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
     <ItemGroup>
@@ -21,6 +20,6 @@
         <ProjectReference Include="..\SimilarityCSharp.Core\SimilarityCSharp.Core.csproj" />
     </ItemGroup>
     <ItemGroup>
-        <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
+        <None Include="..\..\README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 </Project>
